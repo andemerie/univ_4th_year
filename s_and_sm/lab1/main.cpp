@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cmath>
 #include <random>
+#include <algorithm>
 using namespace std;
 
 double deduct_by_module(double z, int M) {
@@ -39,11 +40,53 @@ void show_generation_result(const string &generator_name, const int size, const 
          << '[';
     for (int i = 0; i < size; i++) {
         cout << array[i];
-        if (i <size - 1) {
+        if (i < size - 1) {
             cout << ", ";
         } else {
-            cout << "]" << endl << endl;
+            cout << "]" << endl;
         }
+    }
+}
+
+void get_frequencies(const int size, const double *array, const int intervals_number, double *frequencies) {
+    double array_copy[size];
+    for (int i = 0; i < size; i++) {
+        array_copy[i] = array[i];
+    }
+    sort(array_copy, array_copy + size);
+
+    double step = 1.0 / intervals_number;
+    double upper_boundary;
+    int j = 0;
+    for (int i = 0; i < size; i++) {
+        upper_boundary = (j + 1) * step;
+        if (array_copy[i] <= upper_boundary) {
+            frequencies[j]++;
+            continue;
+        }
+        j++;
+        frequencies[j]++;
+    }
+}
+
+void test_with_pearson(const int size, const double *array, const string &for_output) {
+    const int intervals_number = 30;
+    const double delta = 42.577;
+
+    double frequencies[intervals_number] = {};
+    get_frequencies(size, array, intervals_number, frequencies);
+
+    double probability = 1.0 / intervals_number;
+
+    double statistics = 0;
+    for (double frequency : frequencies) {
+        statistics += pow(frequency - size * probability, 2) / (size * probability);
+    }
+
+    if (statistics < delta) {
+        cout << for_output << ": Pearson test is passed." << endl;
+    } else {
+        cout << for_output << ": Pearson test failed." << endl;
     }
 }
 
@@ -61,6 +104,11 @@ int main() {
 
     string generator_name = "multiplicative congruential generator";
     show_generation_result(generator_name, size, mcg_array);
+    cout << endl;
+
+    string for_output = "mcg";
+    test_with_pearson(size, mcg_array, for_output);
+    cout << endl;
 
     double random_array[2 * size];
     default_random_engine generator;
@@ -74,5 +122,10 @@ int main() {
 
     generator_name = "MacLaren-Marsaglia generator";
     show_generation_result(generator_name, size, mmg_array);
+    cout << endl;
+
+    for_output = "mmg";
+    test_with_pearson(size, mmg_array, for_output);
+    cout << endl;
     return 0;
 }
