@@ -2,7 +2,6 @@
 #include <cmath>
 #include <random>
 #include <algorithm>
-#include <cstdlib>
 using namespace std;
 
 double deduct_by_module(double z, int M) {
@@ -114,6 +113,39 @@ void test_with_kolmogorov(const double delta, const int size, const double *arra
     }
 }
 
+void test_for_moments_coincidence(const double delta, const int size, const double *array, const string &for_output) {
+    const double mean = 1.0 / 2;
+    double mean_sampling = 0;
+    for (int i = 0; i < size; i++) {
+        mean_sampling += array[i];
+    }
+    mean_sampling /= size;
+    const double random_deviation1 = mean_sampling - mean;
+
+    const double normalization_factor1 = sqrt(12 * size);
+    if (normalization_factor1 * abs(random_deviation1) < delta) {
+        cout << for_output << ": test for moments coincidence using mean is passed." << endl;
+    } else {
+        cout << for_output << ": test for moments coincidence using mean failed." << endl;
+    }
+
+    const double dispersion = 1.0 / 12;
+    double dispersion_sampling = 0;
+    for (int i = 0; i < size; i++) {
+        dispersion_sampling += pow(array[i] - mean_sampling, 2);
+    }
+    dispersion_sampling /= size - 1;
+    const double random_deviation2 = dispersion_sampling - dispersion;
+
+    const double normalization_factor2 = (size - 1) /
+            (size * sqrt(0.0056 / size + 0.0028 / pow(size, 2) - 0.0083 / pow(size, 3)));
+    if (normalization_factor2 * abs(random_deviation2) < delta) {
+        cout << for_output << ": test for moments coincidence using dispersion is passed." << endl;
+    } else {
+        cout << for_output << ": test for moments coincidence using dispersion failed." << endl;
+    }
+}
+
 int main() {
     const int size = 1000;
 
@@ -147,15 +179,18 @@ int main() {
     const int intervals_number = 30;
     const double pearson_delta = 42.577;
     const double kolmogorov_delta = 1.36;
+    const double mc_delta = 3;
 
     string for_output = "mcg";
     test_with_pearson(intervals_number, pearson_delta, size, mcg_array, for_output);
     test_with_kolmogorov(kolmogorov_delta, size, mcg_array, for_output);
+    test_for_moments_coincidence(mc_delta, size, mcg_array, for_output);
     cout << endl;
 
     for_output = "mmg";
     test_with_pearson(intervals_number,pearson_delta, size, mmg_array, for_output);
     test_with_kolmogorov(kolmogorov_delta, size, mmg_array, for_output);
+    test_for_moments_coincidence(mc_delta, size, mmg_array, for_output);
     cout << endl;
     return 0;
 }
