@@ -2,6 +2,7 @@
 #include <cmath>
 #include <random>
 #include <algorithm>
+#include <cstdlib>
 using namespace std;
 
 double deduct_by_module(double z, int M) {
@@ -49,18 +50,18 @@ void show_generation_result(const string &generator_name, const int size, const 
 }
 
 void get_frequencies(const int size, const double *array, const int intervals_number, double *frequencies) {
-    double array_copy[size];
+    double sorted_array[size];
     for (int i = 0; i < size; i++) {
-        array_copy[i] = array[i];
+        sorted_array[i] = array[i];
     }
-    sort(array_copy, array_copy + size);
+    sort(sorted_array, sorted_array + size);
 
     double step = 1.0 / intervals_number;
     double upper_boundary;
     int j = 0;
     for (int i = 0; i < size; i++) {
         upper_boundary = (j + 1) * step;
-        if (array_copy[i] <= upper_boundary) {
+        if (sorted_array[i] <= upper_boundary) {
             frequencies[j]++;
             continue;
         }
@@ -69,10 +70,7 @@ void get_frequencies(const int size, const double *array, const int intervals_nu
     }
 }
 
-void test_with_pearson(const int size, const double *array, const string &for_output) {
-    const int intervals_number = 30;
-    const double delta = 42.577;
-
+void test_with_pearson(const int intervals_number, const double delta, const int size, const double *array, const string &for_output) {
     double frequencies[intervals_number] = {};
     get_frequencies(size, array, intervals_number, frequencies);
 
@@ -87,6 +85,32 @@ void test_with_pearson(const int size, const double *array, const string &for_ou
         cout << for_output << ": Pearson test is passed." << endl;
     } else {
         cout << for_output << ": Pearson test failed." << endl;
+    }
+}
+
+void test_with_kolmogorov(const double delta, const int size, const double *array, const string &for_output) {
+    double empirical_distribution[size];
+    for (int i = 0; i < size; i++) {
+        empirical_distribution[i] = (float) (i + 1) / size;
+    }
+
+    double sorted_array[size];
+    for (int i = 0; i < size; i++) {
+        sorted_array[i] = array[i];
+    }
+    sort(sorted_array, sorted_array + size);
+
+    double for_statistics[size];
+    for (int i = 0; i < size; i++) {
+        for_statistics[i] = abs(empirical_distribution[i] - sorted_array[i]);
+    }
+
+    double statistics = *max_element(for_statistics, for_statistics + size);
+
+    if (statistics * sqrt(size) < delta) {
+        cout << for_output << ": Kolmogorov test is passed." << endl;
+    } else {
+        cout << for_output << ": Kolmogorov test failed." << endl;
     }
 }
 
@@ -106,10 +130,6 @@ int main() {
     show_generation_result(generator_name, size, mcg_array);
     cout << endl;
 
-    string for_output = "mcg";
-    test_with_pearson(size, mcg_array, for_output);
-    cout << endl;
-
     double random_array[2 * size];
     default_random_engine generator;
     uniform_real_distribution<double> distribution(0, 1);
@@ -124,8 +144,18 @@ int main() {
     show_generation_result(generator_name, size, mmg_array);
     cout << endl;
 
+    const int intervals_number = 30;
+    const double pearson_delta = 42.577;
+    const double kolmogorov_delta = 1.36;
+
+    string for_output = "mcg";
+    test_with_pearson(intervals_number, pearson_delta, size, mcg_array, for_output);
+    test_with_kolmogorov(kolmogorov_delta, size, mcg_array, for_output);
+    cout << endl;
+
     for_output = "mmg";
-    test_with_pearson(size, mmg_array, for_output);
+    test_with_pearson(intervals_number,pearson_delta, size, mmg_array, for_output);
+    test_with_kolmogorov(kolmogorov_delta, size, mmg_array, for_output);
     cout << endl;
     return 0;
 }
