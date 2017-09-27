@@ -36,11 +36,17 @@ y2 = table2array(SortedByBirthDate(:, 4));
 
 plots = figure;
 subplot(2, 1, 1) ;
-plot(x, y1, 'b');
+plot(x, y1, '-ob');
+grid on;
+xlabel('Student id');
+ylabel('Birthdate');
 title('T');
 
 subplot(2, 1, 2);
-plot(x, y2, 'g');
+plot(x, y2, '-*g');
+grid on;
+xlabel('Student id');
+ylabel('Birthdate');
 title('SortedByBirthDate');
 
 saveas(plots,'plots.png');
