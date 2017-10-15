@@ -108,7 +108,7 @@ CREATE TABLE appointments (
     appointment_id NUMBER(2) PRIMARY KEY,
     patient_id NUMBER(2) NOT NULL,
     date_and_time DATE NOT NULL,
-    doctor_id NUMBER(2) NOT NULL,
+    doctor_id NUMBER(2),
     work_description VARCHAR2(100),  
     price NUMBER NOT NULL,
     payment_form VARCHAR2(10) NOT NULL
@@ -116,15 +116,15 @@ CREATE TABLE appointments (
 
 COMMIT;
 
-INSERT INTO appointments VALUES (1, 11, to_date('25-09-2017 09:00', 'dd-mm-yyyy hh24:mi'), 1, 'Work description 1', 100, 'cash');
-INSERT INTO appointments VALUES (2, 12, to_date('25-09-2017 10:30', 'dd-mm-yyyy hh24:mi'), 2, 'Work description 2', 550, 'card');
-INSERT INTO appointments VALUES (3, 13, to_date('25-09-2017 12:00', 'dd-mm-yyyy hh24:mi'), 3, 'Work description 3', 200, 'card');
-INSERT INTO appointments VALUES (4, 14, to_date('26-09-2017 09:30', 'dd-mm-yyyy hh24:mi'), 4, 'Work description 4', 450, 'cash');
-INSERT INTO appointments VALUES (5, 15, to_date('26-09-2017 10:00', 'dd-mm-yyyy hh24:mi'), 5, 'Work description 5', 300, 'cash');
-INSERT INTO appointments VALUES (6, 16, to_date('26-09-2017 11:30', 'dd-mm-yyyy hh24:mi'), 6, 'Work description 6', 350, 'card');
-INSERT INTO appointments VALUES (7, 17, to_date('27-09-2017 10:00', 'dd-mm-yyyy hh24:mi'), 7, 'Work description 7', 400, 'cash');
-INSERT INTO appointments VALUES (8, 18, to_date('27-09-2017 11:30', 'dd-mm-yyyy hh24:mi'), 8, 'Work description 8', 250, 'card');
-INSERT INTO appointments VALUES (9, 19, to_date('27-09-2017 13:00', 'dd-mm-yyyy hh24:mi'), 9, 'Work description 9', 500, 'card');
-INSERT INTO appointments VALUES (10, 20, to_date('28-09-2017 10:30', 'dd-mm-yyyy hh24:mi'), 10, 'Work description 10', 150, 'cash');
+INSERT INTO appointments VALUES (1, 11, to_date('25-09-2016 09:00', 'dd-mm-yyyy hh24:mi'), NULL, 'Work description 1', 100, 'cash');
+INSERT INTO appointments VALUES (2, 12, to_date('25-09-2017 10:30', 'dd-mm-yyyy hh24:mi'), NULL, 'Work description 2', 550, 'card');
+INSERT INTO appointments VALUES (3, 13, to_date('25-09-2017 12:00', 'dd-mm-yyyy hh24:mi'), 1, 'Work description 3', 200, 'card');
+INSERT INTO appointments VALUES (4, 14, to_date('26-09-2017 09:30', 'dd-mm-yyyy hh24:mi'), NULL, 'Work description 4', 450, 'cash');
+INSERT INTO appointments VALUES (5, 15, to_date('26-10-2017 10:00', 'dd-mm-yyyy hh24:mi'), NULL, 'Work description 5', 300, 'cash');
+INSERT INTO appointments VALUES (6, 16, to_date('26-10-2017 11:30', 'dd-mm-yyyy hh24:mi'), NULL, 'Work description 6', 350, 'card');
+INSERT INTO appointments VALUES (7, 11, to_date('27-10-2017 10:00', 'dd-mm-yyyy hh24:mi'), NULL, 'Work description 7', 400, 'cash');
+INSERT INTO appointments VALUES (8, 18, to_date('27-10-2017 11:30', 'dd-mm-yyyy hh24:mi'), NULL, 'Work description 8', 250, 'card');
+INSERT INTO appointments VALUES (9, 19, to_date('27-11-2017 13:00', 'dd-mm-yyyy hh24:mi'), NULL, 'Work description 9', 500, 'card');
+INSERT INTO appointments VALUES (10, 14, to_date('28-11-2017 10:30', 'dd-mm-yyyy hh24:mi'), 2, 'Work description 10', 150, 'cash');
 
 COMMIT;
