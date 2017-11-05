@@ -1,92 +1,123 @@
-from random import gauss, random
-from math import tan, pi, atan, log, pow, exp, sqrt
+from random import random
+from math import log, sqrt, exp, erf, tan, pi, atan, pow
+
+
+def get_standart_gauss():
+    return sum([random() for _ in range(12)]) - 6
+
+
+def get_gauss_value(mean, variance):
+    return mean + sqrt(variance) * get_standart_gauss()
+
+
+def perform_gauss(size, mean, variance):
+    distr_list = []
+    for _ in range(size):
+        x = get_gauss_value(mean, variance)
+        distr_list.append(x)
+    return distr_list
+
+
+def perform_exponential(size, lmbda):
+    distr_list = []
+    for _ in range(size):
+        x = - 1 / lmbda * log(random())
+        distr_list.append(x)
+    return distr_list
+
+
+def perform_lognormal(size, m, variance):
+    distr_list = []
+    for _ in range(size):
+        gauss = get_gauss_value(log(m), variance)
+        distr_list.append(exp(gauss))
+    return distr_list
 
 
 def perform_cauchy(size, median, mode):
     distr_list = []
-    for i in range(size):
-        gauss_value1 = gauss(0, 1)
-        gauss_value2 = gauss(0, 1)
-        ksi = gauss_value1 / gauss_value2
+    for _ in range(size):
+        standart_gauss1 = get_standart_gauss()
+        standart_gauss2 = get_standart_gauss()
+        ksi = standart_gauss1 / standart_gauss2
         x = median + mode * tan(pi * (ksi - 0.5))
         distr_list.append(x)
     return distr_list
 
 
-def perform_logistic(size, mean, standart_deviation):
+def perform_logistic(size, mean, param):
     distr_list = []
-    for i in range(size):
+    for _ in range(size):
         y = random()
-        x = mean + standart_deviation * log(y / (1 - y))
+        x = mean + param * log(y / (1 - y))
         distr_list.append(x)
     return distr_list
 
 
-def show_distr_result(distr_name, distr_list):
-    print('Realizations of the discrete random variable (in the amount of ' +
-          str(len(distr_list)) + '),')
-    print('obtained with the help of ' + distr_name + ': ')
-    print(distr_list)
-    return
+def get_gauss(x, mean, variance):
+    return 0.5 * (1 + erf((x - mean) / sqrt(2 * variance)))
 
 
-def get_empirical(x, sorted_list):
-    size = len(sorted_list)
-    sum = 0
-    for element in sorted_list:
-        sum += 1 if element <= x else 0
-    sum /= size
-    return sum
+def get_lognormal(x, m, variance):
+    return 0.5 + 0.5 * erf((log(x) - log(m)) / sqrt(2 * variance))
+
+
+def get_exponential(x, lmbda):
+    return 1 - exp(- lmbda * x)
 
 
 def get_cauchy(x, median, mode):
     return 0.5 + 1 / pi * atan((x - median) / mode)
 
 
-def get_logistic(x, mean, standart_deviation):
-    return pow(1 + exp(-(x - mean) / standart_deviation), -1)
+def get_logistic(x, mean, param):
+    return pow(1 + exp(-(x - mean) / param), -1)
 
 
-def test_with_kolmogorov(distr_list, get_model, parameter1, parameter2, delta, for_output):
+def test_with_kolmogorov(distr_list, get_model, params, delta):
     size = len(distr_list)
-
     sorted_list = sorted(distr_list)
 
     for_statistics = []
-    for x in range(int(sorted_list[0]), int(sorted_list[size - 1])):
-        empirical_distr = get_empirical(x, sorted_list)
-        model_distr = get_model(x, parameter1, parameter2)
+    for i, x in enumerate(sorted_list):
+        empirical_distr = (i + 1) / size
+        model_distr = get_model(x, **params)
         for_statistics.append(abs(empirical_distr - model_distr))
 
     statistics = max(for_statistics)
+    response_str = 'Kolmogorov test is passed.' if statistics * sqrt(size) < delta else 'Kolmogorov test failed.'
+    return response_str
 
-    if statistics * sqrt(size) < delta:
-        print(for_output + ': Kolmogorov test is passed.')
-    else:
-        print(for_output + ': Kolmogorov test failed.')
 
+def show_result(distr_name, distr_list, kolmogorov_str):
+    print('{}:\n{}\n{}\n'.format(distr_name, distr_list, kolmogorov_str))
+    return
+
+
+def run(perform_distr, size, params, get_distr, delta, distr_name):
+    distr_list = perform_distr(size, **params)
+    kolmogorov_str = test_with_kolmogorov(distr_list, get_distr, params, delta)
+    show_result(distr_name, distr_list, kolmogorov_str)
     return
 
 
 SIZE = 1000
-
-MEDIAN = 1
-MODE = 2
-
-cauchy_list = perform_cauchy(SIZE, MEDIAN, MODE)
-cauchy_name = 'Cauchy distribution'
-show_distr_result(cauchy_name, cauchy_list)
-print()
-
-MEAN = 2
-STANDART_DEVIATION = 3
-
-logistic_list = perform_logistic(SIZE, MEAN, STANDART_DEVIATION)
-logistic_name = 'logistic distribution'
-show_distr_result(logistic_name, logistic_list)
-print()
-
 DELTA = 1.36
 
-test_with_kolmogorov(cauchy_list, get_cauchy, MEDIAN, MODE, DELTA, cauchy_name)
-test_with_kolmogorov(logistic_list, get_logistic, MEAN, STANDART_DEVIATION, DELTA, logistic_name)
+print('Realizations of the discrete random variable (in the amount of {}),\n\
+obtained with the help of different distribitions.\n'.format(SIZE))
+
+gauss_params = {'mean': 1, 'variance': 9}
+run(perform_gauss, SIZE, gauss_params, get_gauss, DELTA, 'gaussian distribution')
+
+lognormal_params = {'m': 1, 'variance': 9}
+run(perform_lognormal, SIZE, lognormal_params, get_lognormal, DELTA, 'lognormal distribution')
+
+exponential_params = {'lmbda': 9}
+run(perform_exponential, SIZE, exponential_params, get_exponential, DELTA, 'exponential distribution')
+
+cauchy_params = {'median': 1, 'mode': 2}
+run(perform_cauchy, SIZE, cauchy_params, get_cauchy, DELTA, 'Cauchy distribution')
+
+logistic_params = {'mean': 2, 'param': 3}
+run(perform_logistic, SIZE, logistic_params, get_logistic, DELTA, 'logistic distribution')
