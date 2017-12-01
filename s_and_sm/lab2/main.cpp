@@ -1,56 +1,50 @@
 #include <iostream>
+#include <fstream>
+#include <sstream>
+#include <map>
 #include <random>
 using namespace std;
 
-void perform_geom_distr(const double p, const int size, int *geom_distr_array) {
-    double random_array[size];
-    default_random_engine generator;
-    uniform_real_distribution<double> distribution(0, 1);
-    for (int i = 0; i < size; ++i) {
-        random_array[i] = distribution(generator);
-    }
 
-    const double q = 1 - p;
+int m = 0, r = 0;
+double lmbda = 0;
 
-    for (int i = 0; i < size; ++i) {
-        geom_distr_array[i] = (int) ceil(log(random_array[i]) / log(q));
-    }
+double get_base_random() {
+    static default_random_engine generator;
+    static uniform_real_distribution<double> distribution(0, 1);
+    return distribution(generator);
 }
+
+int get_bernoulli_value(const double p) {
+    return get_base_random() <= p ? 1 : 0;
+}
+
+int *perform_bernoulli(const int size, const double p) {
+    auto *bernoulli_array = new int [size];
+    for (int i = 0; i < size; ++i) {
+        bernoulli_array[i] = get_bernoulli_value(p);
+    }
+    return bernoulli_array;
+}
+
+double get_bernoulli_prob(const double p, const int x) {
+    return pow(p, x) * pow(1 - p, 1 - x);
+};
+
+int *perform_geometric(const int size, const double p) {
+    auto *geometric_array = new int [size];
+    for (int i = 0; i < size; ++i) {
+        geometric_array[i] = (int) ceil(log(get_base_random()) / log(1 - p));
+    }
+    return geometric_array;
+}
+
+double get_geometric_prob(const double p, const int x) {
+    return p * pow(1 - p, x - 1);
+};
 
 int l_func(const double z) {
     return z <= 0 ? 0 : 1;
-}
-
-void perform_binom_distr(const int m, const double p, const int size, int *binom_distr_array) {
-    double random_array[size * m];
-    default_random_engine generator;
-    uniform_real_distribution<double> distribution(0, 1);
-    for (int j = 0; j < size * m; ++j) {
-        random_array[j] = distribution(generator);
-    }
-
-    for (int i = 0; i < size; ++i) {
-        int sum = 0;
-        for (int j = 0; j < m; ++j) {
-            sum += l_func(p - random_array[i * m + j]);
-        }
-
-        binom_distr_array[i] = sum;
-    }
-};
-
-void show_distribution_result(const string &distribution_name, const int size, const int *array) {
-    cout << "Realizations of the discrete random variable (in the amount of " << size << ")," << endl
-         << "obtained with the help of a " << distribution_name << ": " << endl
-         << '[';
-    for (int i = 0; i < size; ++i) {
-        cout << array[i];
-        if (i < size - 1) {
-            cout << ", ";
-        } else {
-            cout << "]" << endl;
-        }
-    }
 }
 
 int factorial(const int n) {
@@ -61,60 +55,153 @@ double binom_coefficient(const int n, const int k) {
     return factorial(n) / (factorial(k) * factorial(n - k));
 }
 
-void retrieve_binom_probabilities(const int m, const double p, const int intervals_number, double *binom_probabilities) {
-    for (int i = 0; i < intervals_number; ++i) {
-        binom_probabilities[i] = binom_coefficient(m, i) * pow(p, i) * pow(1 - p, m - i);
+int *perform_binomial(const int size, const double p) {
+    auto *binomial_array = new int [size];
+
+    for (int i = 0; i < size; ++i) {
+        int sum = 0;
+        for (int j = 0; j < m; ++j) {
+            sum += l_func(p - get_base_random());
+        }
+        binomial_array[i] = sum;
     }
+
+    return binomial_array;
 };
 
-void test_with_pearson(const double *probabilities, const int intervals_number,
-                       const double delta, const int size, const int *array, const string &for_output) {
-    double frequencies[intervals_number] = {};
+double get_binomial_prob(const double p, const int x) {
+    return binom_coefficient(m, x) * pow(p, x) * pow(1 - p, m - x);
+};
+
+int *perform_pascal(const int size, const double p) {
+    auto *pascal_array = new int [size];
+
     for (int i = 0; i < size; ++i) {
-        frequencies[array[i]]++;
+        int sum = 0, experiments_num = 0;
+        while (sum < r) {
+            sum += get_bernoulli_value(p);
+            ++experiments_num;
+        }
+        pascal_array[i] = experiments_num - r;
     }
 
+    return pascal_array;
+};
+
+double get_pascal_prob(const double p, const int x) {
+    return binom_coefficient(x + r - 1, x) * pow(p, r) * pow(1 - p, x);
+};
+
+int *perform_poisson(const int size, const double p) {
+    auto *poisson_array = new int [size];
+
+    for (int i = 0; i < size; ++i) {
+        double alpha = get_base_random();
+        int j = 0;
+        while (alpha >= exp(-lmbda)) {
+            alpha *= get_base_random();
+            ++j;
+        }
+        poisson_array[i] = j;
+    }
+
+    return poisson_array;
+};
+
+double get_poisson_prob(const double p, const int x) {
+    return exp(-lmbda) * pow(lmbda, x) / factorial(x);
+};
+
+string test_with_pearson(map<int, double> &deltas, double (*get_probability)(const double, const int), const double p,
+                         const double threshold, const int size, const int *array) {
+    int intervals_num = 0;
+    vector<double> probabilities;
+    for ( ; intervals_num < deltas.size();  ++intervals_num) {
+        const double probability = get_probability(p, intervals_num);
+        if (probability <= threshold || probability > 1) {
+            break;
+        }
+        probabilities.push_back(probability);
+    }
+
+    double frequencies[intervals_num] = {};
+    for (int i = 0; i < size; ++i) {
+        if (array[i] >= intervals_num) {
+            continue;
+        }
+        ++frequencies[array[i]];
+    }
+
+    const double delta = deltas[intervals_num];
     double statistics = 0;
-    for (int i = 0; i < intervals_number; ++i) {
+    for (int i = 0; i < intervals_num; ++i) {
+        if (frequencies[i] == 0) {
+            continue;
+        }
         statistics += pow(frequencies[i] - size * probabilities[i], 2) / (size * probabilities[i]);
     }
 
-    if (statistics < delta) {
-        cout << for_output << ": Pearson test is passed." << endl;
-    } else {
-        cout << for_output << ": Pearson test failed." << endl;
+    const string response_str = statistics < delta ? "Pearson test is passed." : "Pearson test failed.";
+    return response_str;
+}
+
+void show_result(const string &distr_name, const int size, const int *array, const string &pearson_str) {
+    cout << distr_name << ":" << endl << "[";
+    for (int i = 0; i < size; ++i) {
+        cout << array[i];
+        if (i < size - 1) {
+            cout << ", ";
+        } else {
+            cout << "]" << endl;
+        }
     }
+    if (!pearson_str.empty()) {
+        cout << pearson_str << endl;
+    }
+    cout << endl;
+}
+
+void run(int *(*perform_distr)(const int, const double), const int size, const double p, map<int, double> &deltas,
+         double (*get_probability)(const double, const int), const double pearson_threshold, const string &distr_name) {
+    int *distr_array = perform_distr(size, p);
+    string pearson_str = test_with_pearson(deltas, get_probability, p, pearson_threshold, size, distr_array);
+    show_result(distr_name, size, distr_array, pearson_str);
 }
 
 int main() {
     const int size = 1000;
+    const double pearson_threshold = 0.01;
 
-    double p = 0.25;
+    ifstream in("../pearson_deltas.txt");
+    string line;
+    map<int, double> deltas;
+    while (getline(in, line)) {
+        istringstream iss(line);
+        int key;
+        double value;
+        iss >> key >> value;
+        deltas[key] = value;
+    }
 
-    int geom_distr_array[size];
-    perform_geom_distr(p, size, geom_distr_array);
+    cout << "Realizations of the discrete random variable (in the amount of " << size << ")," << endl
+         << "obtained with the help of different distributions." << endl << endl;
 
-    string geom_distr_string = "geometric distribution";
-    show_distribution_result(geom_distr_string, size, geom_distr_array);
-    cout << endl;
+    double p = 0.8;
+    run(&perform_bernoulli, size, p, deltas, &get_bernoulli_prob, pearson_threshold, "Bernoulli distribution");
 
-    const int m = 6;
+    p = 0.25;
+    run(&perform_geometric, size, p, deltas, &get_geometric_prob, pearson_threshold, "geometric distribution");
+
+    m = 6;
     p = 0.3333333;
+    run(&perform_binomial, size, p, deltas, &get_binomial_prob, pearson_threshold, "binomial distribution");
 
-    int binom_distr_array[size];
-    perform_binom_distr(m, p, size, binom_distr_array);
+    r = 4;
+    p = 0.8;
+    run(&perform_pascal, size, p, deltas, &get_pascal_prob, pearson_threshold, "Pascal distribution");
 
-    string binom_distr_string = "binomial distribution";
-    show_distribution_result(binom_distr_string, size, binom_distr_array);
-    cout << endl;
-
-    const int intervals_number = m + 1;
-    const double pearson_delta = 12.596;
-
-    double binom_probabilities[intervals_number];
-    retrieve_binom_probabilities(m, p, intervals_number, binom_probabilities);
-
-    test_with_pearson(binom_probabilities, intervals_number, pearson_delta, size, binom_distr_array, binom_distr_string);
+    lmbda = 0.3;
+    run(&perform_poisson, size, 0, deltas, &get_poisson_prob, pearson_threshold, "Poisson distribution");
 
     return 0;
 }
