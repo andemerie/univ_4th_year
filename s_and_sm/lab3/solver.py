@@ -104,7 +104,7 @@ def run(perform_distr, size, params, get_distr, delta, distr_name):
 SIZE = 1000
 DELTA = 1.36
 
-print('Realizations of the discrete random variable (in the amount of {}),\n\
+print('Realizations of the continuous random variable (in the amount of {}),\n\
 obtained with the help of different distribitions.\n'.format(SIZE))
 
 gauss_params = {'mean': 1, 'variance': 9}
